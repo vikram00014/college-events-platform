@@ -16,8 +16,8 @@ export default async function handler(
   }
 
   try {
-    // Check if analytics record exists
-    const { data: existingAnalytics, error: fetchError } = await supabase
+    // Check if analytics record exists - cast to any
+    const { data: existingAnalytics, error: fetchError } = await (supabase as any)
       .from('event_analytics')
       .select('*')
       .eq('event_id', id)
@@ -32,7 +32,7 @@ export default async function handler(
       const { error: updateError } = await (supabase as any)
         .from('event_analytics')
         .update({
-          page_views: existingAnalytics.page_views + 1,
+          page_views: (existingAnalytics as any).page_views + 1,
           last_updated: new Date().toISOString()
         })
         .eq('event_id', id)
