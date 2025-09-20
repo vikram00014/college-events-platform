@@ -222,16 +222,11 @@ export function AdminDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge 
-                      variant={
-                        event.status === 'pending' ? 'secondary' :
-                        event.status === 'approved' ? 'default' :
-                        event.status === 'rejected' ? 'destructive' :
-                        'outline'
-                      }
-                    >
-                      {event.status}
-                    </Badge>
+                    <Badge variant="secondary">
+  {event.status}
+</Badge>
+
+
                     {event.status === 'pending' && (
                       <div className="flex gap-2">
                         <Button 
