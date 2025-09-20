@@ -9,18 +9,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { userId, updates } = req.body
 
-    // Cast supabase to any to bypass TypeScript issues
+    if (!userId || !updates) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+
+    // FIXED: Remove updated_at since users table doesn't have it
     const { error } = await (supabase as any)
       .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', userId)
 
     if (error) {
       console.error('Database error:', error)
-      return res.status(500).json({ error: 'Failed to update user' })
+      return res.status(500).json({ error: 'Failed to update user', details: error.message })
     }
 
     return res.status(200).json({ success: true })

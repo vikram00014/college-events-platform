@@ -58,10 +58,41 @@ export function UserManagement() {
     }
   }
 
+  // Generic function to update user role
+  const updateUserRole = async (userId: string, newRole: string) => {
+    setActionLoading(userId)
+    try {
+      const response = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          updates: { role: newRole }
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update user role')
+      }
+      
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, role: newRole as any } : user
+      ))
+      alert(`User role updated to ${newRole} successfully!`)
+    } catch (error) {
+      console.error('Error updating user role:', error)
+      alert('Failed to update user role. Please try again.')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     setActionLoading(userId)
     try {
-      // Use API route instead of direct Supabase update
       const response = await fetch('/api/admin/update-user', {
         method: 'POST',
         headers: {
@@ -74,7 +105,8 @@ export function UserManagement() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update user status')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update user status')
       }
       
       setUsers(prev => prev.map(user => 
@@ -89,36 +121,10 @@ export function UserManagement() {
     }
   }
 
-  const makeAdmin = async (userId: string) => {
-    setActionLoading(userId)
-    try {
-      // Use API route instead of direct Supabase update
-      const response = await fetch('/api/admin/update-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          updates: { role: 'admin' }
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update user role')
-      }
-      
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, role: 'admin' as const } : user
-      ))
-      alert('User promoted to admin successfully!')
-    } catch (error) {
-      console.error('Error updating user role:', error)
-      alert('Failed to update user role. Please try again.')
-    } finally {
-      setActionLoading(null)
-    }
-  }
+  // Specific role functions
+  const makeAdmin = (userId: string) => updateUserRole(userId, 'admin')
+  const makeOrganizer = (userId: string) => updateUserRole(userId, 'organizer')
+  const makeStudent = (userId: string) => updateUserRole(userId, 'student')
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -151,17 +157,16 @@ export function UserManagement() {
   }
 
   const canSuspendUser = (user: UserType) => {
-    // Cannot suspend yourself or other admins
     return !isCurrentUser(user.email) && user.role !== 'admin'
   }
 
   if (loading) {
     return (
-      <Card>
+      <Card className="glass-card shadow-soft">
         <CardContent className="p-6">
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse flex items-center space-x-4 p-4 border rounded">
+              <div key={i} className="animate-shimmer flex items-center space-x-4 p-4 border rounded">
                 <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
@@ -177,11 +182,11 @@ export function UserManagement() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="glass-card shadow-soft">
         <CardHeader>
-          <CardTitle>User Management</CardTitle>
+          <CardTitle className="text-gradient">👥 User Management</CardTitle>
           <CardDescription>
-            Manage user accounts, roles, and permissions
+            Manage user accounts, roles, and permissions across your platform
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -192,16 +197,38 @@ export function UserManagement() {
               placeholder="Search users by name, email, or role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 input-modern"
             />
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="glass-card p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-red-500" />
+                <span className="text-sm font-medium">Admins: {users.filter(u => u.role === 'admin').length}</span>
+              </div>
+            </div>
+            <div className="glass-card p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                <span className="text-sm font-medium">Organizers: {users.filter(u => u.role === 'organizer').length}</span>
+              </div>
+            </div>
+            <div className="glass-card p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-green-500" />
+                <span className="text-sm font-medium">Students: {users.filter(u => u.role === 'student').length}</span>
+              </div>
+            </div>
           </div>
 
           {/* Users List */}
           <div className="space-y-4">
             {filteredUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg card-hover shadow-soft">
                 <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-float">
                     {getRoleIcon(user.role)}
                   </div>
                   <div>
@@ -227,26 +254,54 @@ export function UserManagement() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {/* Make Admin Button - only show for non-admins */}
+                  {/* Role Change Buttons */}
                   {user.role !== 'admin' && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => makeAdmin(user.id)}
                       disabled={actionLoading === user.id}
+                      className="btn-magnetic"
                     >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Make Admin
+                      <Shield className="h-4 w-4 mr-1" />
+                      Admin
                     </Button>
                   )}
                   
-                  {/* Suspend/Activate Button - only show if user can be suspended */}
+                  {user.role !== 'organizer' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => makeOrganizer(user.id)}
+                      disabled={actionLoading === user.id}
+                      className="btn-magnetic"
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                      Organizer
+                    </Button>
+                  )}
+                  
+                  {user.role !== 'student' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => makeStudent(user.id)}
+                      disabled={actionLoading === user.id}
+                      className="btn-magnetic"
+                    >
+                      <User className="h-4 w-4 mr-1" />
+                      Student
+                    </Button>
+                  )}
+                  
+                  {/* Suspend/Activate Button */}
                   {canSuspendUser(user) && (
                     <Button
                       variant={user.is_active ? "outline" : "default"}
                       size="sm"
                       onClick={() => toggleUserStatus(user.id, user.is_active)}
                       disabled={actionLoading === user.id}
+                      className="btn-pulse"
                     >
                       {user.is_active ? (
                         <>
@@ -262,12 +317,21 @@ export function UserManagement() {
                     </Button>
                   )}
                   
-                  {/* Protected Status for Admins and Current User */}
+                  {/* Protected Status */}
                   {(user.role === 'admin' || isCurrentUser(user.email)) && (
                     <span className="text-sm text-green-600 font-medium flex items-center gap-1">
                       <Shield className="h-4 w-4" />
-                      {user.role === 'admin' ? 'Protected Admin' : 'Current User'}
+                      {user.role === 'admin' ? 'Protected' : 'Current User'}
                     </span>
+                  )}
+                  
+                  {/* Loading Indicator */}
+                  {actionLoading === user.id && (
+                    <div className="pulse-loader ml-2">
+                      <div className="pulse-dot"></div>
+                      <div className="pulse-dot"></div>
+                      <div className="pulse-dot"></div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -276,7 +340,7 @@ export function UserManagement() {
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-float" />
               <h3 className="text-lg font-medium mb-2">No users found</h3>
               <p className="text-muted-foreground">
                 {searchQuery ? 'Try adjusting your search query' : 'No users registered yet'}
