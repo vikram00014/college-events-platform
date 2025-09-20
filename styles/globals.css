@@ -177,7 +177,7 @@
     background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
     border-radius: inherit;
     opacity: 0;
-    blur: 20px;
+    filter: blur(20px);
     transition: opacity 0.3s;
     z-index: -1;
   }
