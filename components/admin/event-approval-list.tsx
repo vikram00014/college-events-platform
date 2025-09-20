@@ -42,20 +42,28 @@ export function EventApprovalList() {
   const handleApproval = async (eventId: string, status: 'approved' | 'rejected') => {
     setActionLoading(eventId)
     try {
-      const { error } = await supabase
-        .from('events')
-        .update({ 
-          status: status === 'approved' ? 'approved' : 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', eventId)
+      // Use API route instead of direct Supabase update
+      const response = await fetch('/api/admin/update-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: eventId,
+          status: status === 'approved' ? 'approved' : 'rejected'
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error(`Failed to ${status} event`)
+      }
       
       // Remove from list after approval/rejection
       setEvents(prev => prev.filter(e => e.id !== eventId))
+      alert(`Event ${status} successfully!`)
     } catch (error) {
       console.error('Error updating event status:', error)
+      alert(`Failed to ${status} event. Please try again.`)
     } finally {
       setActionLoading(null)
     }
@@ -66,21 +74,36 @@ export function EventApprovalList() {
 
     setActionLoading('bulk')
     try {
-      const { error } = await supabase
-        .from('events')
-        .update({ 
-          status: status === 'approved' ? 'approved' : 'archived',
-          updated_at: new Date().toISOString()
+      // Update each event individually using API
+      const promises = Array.from(selectedEvents).map(eventId =>
+        fetch('/api/admin/update-event', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            eventId: eventId,
+            status: status === 'approved' ? 'approved' : 'rejected'
+          }),
         })
-        .in('id', Array.from(selectedEvents))
+      )
 
-      if (error) throw error
+      const results = await Promise.all(promises)
+      
+      // Check if all requests were successful
+      const allSuccessful = results.every(response => response.ok)
+      
+      if (!allSuccessful) {
+        throw new Error('Some events failed to update')
+      }
       
       // Remove approved/rejected events from list
       setEvents(prev => prev.filter(e => !selectedEvents.has(e.id)))
       setSelectedEvents(new Set())
+      alert(`All selected events ${status} successfully!`)
     } catch (error) {
       console.error('Error bulk updating events:', error)
+      alert(`Failed to bulk ${status} events. Please try again.`)
     } finally {
       setActionLoading(null)
     }
