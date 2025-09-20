@@ -41,8 +41,8 @@ export default async function handler(
     }
 
     if (authData.user) {
-      // Create user profile
-      const { error: profileError } = await supabase
+      // Create user profile using any cast
+      const { error: profileError } = await (supabase as any)
         .from('users')
         .insert({
           id: authData.user.id,
