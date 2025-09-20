@@ -42,8 +42,8 @@ export default function EventDetails() {
       if (error) throw error
       setEvent(data)
       
-      if (data.event_analytics?.[0]) {
-        setAnalytics(data.event_analytics[0])
+      if ((data as any).event_analytics?.[0]) {
+        setAnalytics((data as any).event_analytics[0])
       }
     } catch (error) {
       console.error('Error fetching event details:', error)

@@ -56,26 +56,27 @@ export default function OrganizerDashboard({ user }: OrganizerDashboardProps) {
       setEvents(data || [])
 
       // Fetch total views separately
-      let totalViews = 0
-      if (data && data.length > 0) {
-        const eventIds = data.map(event => event.id)
-        
-        const { data: analyticsData } = await supabase
-          .from('event_analytics')
-          .select('page_views')
-          .in('event_id', eventIds)
+let totalViews = 0
+if (data && data.length > 0) {
+  const eventIds = (data as any).map((event: any) => event.id)
+  
+  const { data: analyticsData } = await supabase
+    .from('event_analytics')
+    .select('page_views')
+    .in('event_id', eventIds)
 
-        totalViews = analyticsData?.reduce((sum, analytics) => 
-          sum + (analytics.page_views || 0), 0
-        ) || 0
-      }
+  totalViews = (analyticsData as any)?.reduce((sum: number, analytics: any) => 
+    sum + (analytics.page_views || 0), 0
+  ) || 0
+}
 
-      setStats({
-        total: data?.length || 0,
-        pending: data?.filter(e => e.status === 'pending').length || 0,
-        approved: data?.filter(e => e.status === 'approved').length || 0,
-        totalViews: totalViews // Now properly calculated!
-      })
+setStats({
+  total: (data as any)?.length || 0,
+  pending: (data as any)?.filter((e: any) => e.status === 'pending').length || 0,
+  approved: (data as any)?.filter((e: any) => e.status === 'approved').length || 0,
+  totalViews: totalViews
+})
+
     } catch (error) {
       console.error('Error fetching organizer events:', error)
     } finally {
@@ -87,7 +88,8 @@ export default function OrganizerDashboard({ user }: OrganizerDashboardProps) {
     if (!confirm('Are you sure you want to delete this event?')) return
 
     try {
-      const { error } = await supabase
+      // Use any cast to fix delete operation
+      const { error } = await (supabase as any)
         .from('events')
         .delete()
         .eq('id', eventId)

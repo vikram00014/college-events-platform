@@ -58,7 +58,7 @@ export default function CreateEvent({ user }: CreateEventProps) {
     }
 
     // Create event
-    const { data: eventData, error } = await supabase
+    const { data: eventData, error } = await (supabase as any)
       .from('events')
       .insert({
         title: data.title,
@@ -81,7 +81,7 @@ export default function CreateEvent({ user }: CreateEventProps) {
 
     // Create analytics record
     if (eventData) {
-      await supabase
+      await (supabase as any)
         .from('event_analytics')
         .insert({
           event_id: eventData.id,
