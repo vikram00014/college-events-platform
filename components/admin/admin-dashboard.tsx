@@ -84,16 +84,19 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
-      // Direct SQL query approach
-      const { error } = await supabase
-        .from('events')
-        .update({ status: 'approved' })
-        .eq('id', eventId)
-      
-      if (error) {
-        console.error('Update failed:', error)
-        alert('Failed to approve event. Please check your permissions.')
-        return
+      const response = await fetch('/api/admin/update-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: eventId,
+          status: 'approved'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to approve event')
       }
 
       // Refresh dashboard data
@@ -107,16 +110,19 @@ export function AdminDashboard() {
 
   const handleReject = async (eventId: string) => {
     try {
-      // Direct SQL query approach  
-      const { error } = await supabase
-        .from('events')
-        .update({ status: 'rejected' })
-        .eq('id', eventId)
-      
-      if (error) {
-        console.error('Update failed:', error)
-        alert('Failed to reject event. Please check your permissions.')
-        return
+      const response = await fetch('/api/admin/update-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: eventId,
+          status: 'rejected'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to reject event')
       }
 
       // Refresh dashboard data
