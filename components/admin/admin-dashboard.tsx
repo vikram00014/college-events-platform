@@ -84,9 +84,15 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
+      // Use direct object without type assertion
+      const updateData = {
+        status: 'approved',
+        updated_at: new Date().toISOString()
+      }
+      
       const { error } = await supabase
         .from('events')
-        .update({ status: 'approved' } as any)
+        .update(updateData)
         .eq('id', eventId)
       
       if (error) throw error
@@ -100,9 +106,15 @@ export function AdminDashboard() {
 
   const handleReject = async (eventId: string) => {
     try {
+      // Use direct object without type assertion
+      const updateData = {
+        status: 'rejected',
+        updated_at: new Date().toISOString()
+      }
+      
       const { error } = await supabase
         .from('events')
-        .update({ status: 'rejected' } as any)
+        .update(updateData)
         .eq('id', eventId)
       
       if (error) throw error
