@@ -256,5 +256,3 @@ export default function Home({ user }: HomeProps) {
     </>
   )
 }
-/ /   B u i l d   t r i g g e r  
- 

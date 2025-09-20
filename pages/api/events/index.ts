@@ -92,7 +92,8 @@ async function handleCreateEvent(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    const { data, error } = await supabase
+    // Create event using any cast
+    const { data, error } = await (supabase as any)
       .from('events')
       .insert({
         ...eventData,
@@ -106,8 +107,8 @@ async function handleCreateEvent(req: NextApiRequest, res: NextApiResponse) {
 
     if (error) throw error
 
-    // Create analytics record
-    await supabase
+    // Create analytics record using any cast
+    await (supabase as any)
       .from('event_analytics')
       .insert({
         event_id: data.id,
