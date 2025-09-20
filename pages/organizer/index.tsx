@@ -265,7 +265,7 @@ export default function OrganizerDashboard({ user }: OrganizerDashboardProps) {
                     showActions={true}
                     onEdit={(event) => router.push(`/organizer/edit/${event.id}`)}
                     onDelete={handleDeleteEvent}
-                    className="card-hover shadow-soft"
+                   
                   />
                 </div>
               ))}

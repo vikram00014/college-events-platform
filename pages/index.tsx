@@ -237,7 +237,7 @@ export default function Home({ user }: HomeProps) {
                         <div key={event.id} className="stagger-item">
                           <EventCard 
                             event={event} 
-                            className="card-hover card-glow shadow-soft" 
+                            
                           />
                         </div>
                       ))}
@@ -258,7 +258,7 @@ export default function Home({ user }: HomeProps) {
                         <div key={event.id} className="stagger-item">
                           <EventCard 
                             event={event} 
-                            className="card-hover shadow-soft" 
+                            
                           />
                         </div>
                       ))}
