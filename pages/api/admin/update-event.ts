@@ -9,18 +9,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { eventId, status } = req.body
 
-    // Use service role key to bypass RLS
-    const { error } = await supabase
-      .from('events')
-      .update({ 
-        status: status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', eventId)
+    // Use raw SQL to bypass TypeScript RLS issues
+    const { data, error } = await supabase.rpc('exec_sql', {
+      query: `
+        UPDATE events 
+        SET status = '${status}', updated_at = NOW() 
+        WHERE id = '${eventId}'
+      `
+    })
 
+    // If RPC doesn't work, try direct SQL
     if (error) {
-      console.error('Database error:', error)
-      return res.status(500).json({ error: 'Failed to update event' })
+      console.log('RPC failed, trying direct approach...')
+      
+      // Alternative: Use supabase-js with explicit types
+      const { error: directError } = await supabase
+        .from('events')
+        .update({ 
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId)
+        .select()
+      
+      if (directError) {
+        console.error('Database error:', directError)
+        return res.status(500).json({ error: 'Failed to update event' })
+      }
     }
 
     return res.status(200).json({ success: true })
