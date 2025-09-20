@@ -84,45 +84,59 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
-      // Use direct object without type assertion
-      const updateData = {
-        status: 'approved',
-        updated_at: new Date().toISOString()
+      // Use SQL execute with service role key
+      const { error } = await supabase.rpc('approve_event_admin', {
+        event_id: eventId
+      })
+
+      if (error) {
+        // Fallback: try direct SQL
+        const { error: sqlError } = await supabase
+          .from('events')
+          .update({ status: 'approved' })
+          .eq('id', eventId)
+        
+        if (sqlError) {
+          console.error('Update failed:', sqlError)
+          alert('Failed to approve event. Please try again.')
+          return
+        }
       }
-      
-      const { error } = await supabase
-        .from('events')
-        .update(updateData)
-        .eq('id', eventId)
-      
-      if (error) throw error
 
       // Refresh dashboard data
       fetchDashboardData()
     } catch (error) {
       console.error('Error approving event:', error)
+      alert('Failed to approve event. Please try again.')
     }
   }
 
   const handleReject = async (eventId: string) => {
     try {
-      // Use direct object without type assertion
-      const updateData = {
-        status: 'rejected',
-        updated_at: new Date().toISOString()
+      // Use SQL execute with service role key
+      const { error } = await supabase.rpc('reject_event_admin', {
+        event_id: eventId
+      })
+
+      if (error) {
+        // Fallback: try direct SQL
+        const { error: sqlError } = await supabase
+          .from('events')
+          .update({ status: 'rejected' })
+          .eq('id', eventId)
+        
+        if (sqlError) {
+          console.error('Update failed:', sqlError)
+          alert('Failed to reject event. Please try again.')
+          return
+        }
       }
-      
-      const { error } = await supabase
-        .from('events')
-        .update(updateData)
-        .eq('id', eventId)
-      
-      if (error) throw error
 
       // Refresh dashboard data
       fetchDashboardData()
     } catch (error) {
       console.error('Error rejecting event:', error)
+      alert('Failed to reject event. Please try again.')
     }
   }
 
