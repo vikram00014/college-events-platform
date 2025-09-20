@@ -31,17 +31,31 @@ export function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch events statistics
-      const { data: events } = await supabase
+      // Fetch events statistics with proper typing
+      const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
         .order('created_at', { ascending: false })
       
-      // Fetch users statistics
-      const { data: organizers } = await supabase
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError)
+        return
+      }
+      
+      // Fetch users statistics with proper typing
+      const { data: organizersData, error: organizersError } = await supabase
         .from('users')
         .select('*')
         .eq('role', 'organizer')
+
+      if (organizersError) {
+        console.error('Error fetching organizers:', organizersError)
+        return
+      }
+
+      // Type assertion to ensure proper typing
+      const events = (eventsData as Event[]) || []
+      const organizers = organizersData || []
 
       if (events && organizers) {
         setStats({
@@ -55,22 +69,74 @@ export function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      // Set default stats on error to prevent crashes
+      setStats({
+        totalEvents: 0,
+        pendingApprovals: 0,
+        liveEvents: 0,
+        totalOrganizers: 0
+      })
+      setRecentEvents([])
     } finally {
       setLoading(false)
     }
   }
 
+  const handleApprove = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'approved' })
+        .eq('id', eventId)
+
+      if (error) throw error
+
+      // Refresh dashboard data
+      fetchDashboardData()
+    } catch (error) {
+      console.error('Error approving event:', error)
+    }
+  }
+
+  const handleReject = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'rejected' })
+        .eq('id', eventId)
+
+      if (error) throw error
+
+      // Refresh dashboard data
+      fetchDashboardData()
+    } catch (error) {
+      console.error('Error rejecting event:', error)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="animate-pulse">
+          <CardContent className="p-6">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -148,20 +214,30 @@ export function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <Badge 
                       variant={
-                        event.status === 'pending' ? 'pending' :
-                        event.status === 'approved' ? 'approved' :
-                        event.status === 'archived' ? 'archived' : 'default'
+                        event.status === 'pending' ? 'pending' as any :
+                        event.status === 'approved' ? 'approved' as any :
+                        event.status === 'rejected' ? 'destructive' as any :
+                        event.status === 'archived' ? 'secondary' as any : 'default' as any
                       }
                     >
                       {event.status}
                     </Badge>
                     {event.status === 'pending' && (
                       <div className="flex gap-2">
-                        <Button size="sm" className="h-8">
+                        <Button 
+                          size="sm" 
+                          className="h-8"
+                          onClick={() => handleApprove(event.id)}
+                        >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Approve
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8"
+                          onClick={() => handleReject(event.id)}
+                        >
                           <XCircle className="h-4 w-4 mr-1" />
                           Reject
                         </Button>
@@ -172,7 +248,13 @@ export function AdminDashboard() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">No recent events</p>
+            <div className="text-center py-12">
+              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No recent events</h3>
+              <p className="text-muted-foreground">
+                Events will appear here once organizers start creating them
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
