@@ -84,13 +84,19 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
-      // Use any type to bypass TypeScript strict checking for Supabase updates
-      const { error } = await (supabase as any)
-        .from('events')
-        .update({ status: 'approved' })
-        .eq('id', eventId)
+      // Use SQL query instead of update to bypass TypeScript issues
+      const { error } = await supabase.rpc('approve_event', { event_id: eventId })
 
-      if (error) throw error
+      if (error) {
+        console.error('RPC call failed, using direct update:', error)
+        // Fallback to direct SQL update
+        const { error: updateError } = await supabase
+          .from('events')
+          .update({ status: 'approved' } as any)
+          .eq('id', eventId)
+        
+        if (updateError) throw updateError
+      }
 
       // Refresh dashboard data
       fetchDashboardData()
@@ -101,13 +107,19 @@ export function AdminDashboard() {
 
   const handleReject = async (eventId: string) => {
     try {
-      // Use any type to bypass TypeScript strict checking for Supabase updates
-      const { error } = await (supabase as any)
-        .from('events')
-        .update({ status: 'rejected' })
-        .eq('id', eventId)
+      // Use SQL query instead of update to bypass TypeScript issues
+      const { error } = await supabase.rpc('reject_event', { event_id: eventId })
 
-      if (error) throw error
+      if (error) {
+        console.error('RPC call failed, using direct update:', error)
+        // Fallback to direct SQL update
+        const { error: updateError } = await supabase
+          .from('events')
+          .update({ status: 'rejected' } as any)
+          .eq('id', eventId)
+        
+        if (updateError) throw updateError
+      }
 
       // Refresh dashboard data
       fetchDashboardData()
