@@ -32,9 +32,13 @@ export function UserManagement() {
   }, [users, searchQuery])
 
   const getCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      setCurrentUserEmail(user.email)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && user.email) {
+        setCurrentUserEmail(user.email)
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error)
     }
   }
 
@@ -57,18 +61,29 @@ export function UserManagement() {
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     setActionLoading(userId)
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ is_active: !currentStatus })
-        .eq('id', userId)
+      // Use API route instead of direct Supabase update
+      const response = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          updates: { is_active: !currentStatus }
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to update user status')
+      }
       
       setUsers(prev => prev.map(user => 
         user.id === userId ? { ...user, is_active: !currentStatus } : user
       ))
+      alert(`User ${!currentStatus ? 'activated' : 'suspended'} successfully!`)
     } catch (error) {
       console.error('Error updating user status:', error)
+      alert('Failed to update user status. Please try again.')
     } finally {
       setActionLoading(null)
     }
@@ -77,18 +92,29 @@ export function UserManagement() {
   const makeAdmin = async (userId: string) => {
     setActionLoading(userId)
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ role: 'admin' })
-        .eq('id', userId)
+      // Use API route instead of direct Supabase update
+      const response = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          updates: { role: 'admin' }
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to update user role')
+      }
       
       setUsers(prev => prev.map(user => 
         user.id === userId ? { ...user, role: 'admin' as const } : user
       ))
+      alert('User promoted to admin successfully!')
     } catch (error) {
       console.error('Error updating user role:', error)
+      alert('Failed to update user role. Please try again.')
     } finally {
       setActionLoading(null)
     }
