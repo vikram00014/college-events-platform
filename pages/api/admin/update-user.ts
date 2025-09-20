@@ -9,8 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { userId, updates } = req.body
 
-    // @ts-ignore - Bypass Supabase TypeScript RLS issue
-    const { error } = await supabase
+    // Cast supabase to any to bypass TypeScript issues
+    const { error } = await (supabase as any)
       .from('users')
       .update({
         ...updates,
