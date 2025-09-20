@@ -1,259 +1,261 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Users, TrendingUp, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle, XCircle, Eye, Calendar, MapPin, Users } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
+import { formatDateTime } from '@/lib/utils'
 
-interface DashboardStats {
-  totalEvents: number
-  pendingApprovals: number
-  liveEvents: number
-  totalOrganizers: number
-}
-
-export function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalEvents: 0,
-    pendingApprovals: 0,
-    liveEvents: 0,
-    totalOrganizers: 0
-  })
-  const [recentEvents, setRecentEvents] = useState<Event[]>([])
+export function EventApprovalList() {
+  const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetchDashboardData()
+    fetchPendingEvents()
   }, [])
 
-  const fetchDashboardData = async () => {
+  const fetchPendingEvents = async () => {
     try {
-      // Fetch events statistics with proper typing
-      const { data: eventsData, error: eventsError } = await supabase
+      const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          users:organizer_id (name, email)
+        `)
+        .eq('status', 'pending')
         .order('created_at', { ascending: false })
-      
-      if (eventsError) {
-        console.error('Error fetching events:', eventsError)
-        return
-      }
-      
-      // Fetch users statistics with proper typing
-      const { data: organizersData, error: organizersError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'organizer')
 
-      if (organizersError) {
-        console.error('Error fetching organizers:', organizersError)
-        return
-      }
-
-      // Type assertion to ensure proper typing
-      const events = (eventsData as Event[]) || []
-      const organizers = organizersData || []
-
-      if (events && organizers) {
-        setStats({
-          totalEvents: events.length,
-          pendingApprovals: events.filter(e => e.status === 'pending').length,
-          liveEvents: events.filter(e => e.status === 'approved' && new Date(e.date_time) <= new Date()).length,
-          totalOrganizers: organizers.length
-        })
-        
-        setRecentEvents(events.slice(0, 5))
-      }
+      if (error) throw error
+      setEvents(data || [])
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-      // Set default stats on error to prevent crashes
-      setStats({
-        totalEvents: 0,
-        pendingApprovals: 0,
-        liveEvents: 0,
-        totalOrganizers: 0
-      })
-      setRecentEvents([])
+      console.error('Error fetching pending events:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleApprove = async (eventId: string) => {
+  const handleApproval = async (eventId: string, status: 'approved' | 'rejected') => {
+    setActionLoading(eventId)
     try {
       const { error } = await supabase
         .from('events')
-        .update({ status: 'approved' } as never)
+        .update({ 
+          status: status === 'approved' ? 'approved' : 'archived',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', eventId)
-      
-      if (error) throw error
 
-      // Refresh dashboard data
-      fetchDashboardData()
+      if (error) throw error
+      
+      // Remove from list after approval/rejection
+      setEvents(prev => prev.filter(e => e.id !== eventId))
     } catch (error) {
-      console.error('Error approving event:', error)
+      console.error('Error updating event status:', error)
+    } finally {
+      setActionLoading(null)
     }
   }
 
-  const handleReject = async (eventId: string) => {
+  const handleBulkApproval = async (status: 'approved' | 'rejected') => {
+    if (selectedEvents.size === 0) return
+
+    setActionLoading('bulk')
     try {
       const { error } = await supabase
         .from('events')
-        .update({ status: 'rejected' } as never)
-        .eq('id', eventId)
-      
-      if (error) throw error
+        .update({ 
+          status: status === 'approved' ? 'approved' : 'archived',
+          updated_at: new Date().toISOString()
+        })
+        .in('id', Array.from(selectedEvents))
 
-      // Refresh dashboard data
-      fetchDashboardData()
+      if (error) throw error
+      
+      // Remove approved/rejected events from list
+      setEvents(prev => prev.filter(e => !selectedEvents.has(e.id)))
+      setSelectedEvents(new Set())
     } catch (error) {
-      console.error('Error rejecting event:', error)
+      console.error('Error bulk updating events:', error)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const toggleEventSelection = (eventId: string) => {
+    setSelectedEvents(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(eventId)) {
+        newSet.delete(eventId)
+      } else {
+        newSet.add(eventId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedEvents.size === events.length) {
+      setSelectedEvents(new Set())
+    } else {
+      setSelectedEvents(new Set(events.map(e => e.id)))
     }
   }
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse border rounded-lg p-4">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className="animate-pulse">
-          <CardContent className="p-6">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-4">
+      {/* Bulk Actions */}
+      {selectedEvents.size > 0 && (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Events</p>
-                <p className="text-2xl font-bold">{stats.totalEvents}</p>
+              <p className="text-sm font-medium">
+                {selectedEvents.size} event{selectedEvents.size > 1 ? 's' : ''} selected
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleBulkApproval('approved')}
+                  disabled={actionLoading === 'bulk'}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Approve All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBulkApproval('rejected')}
+                  disabled={actionLoading === 'bulk'}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Reject All
+                </Button>
               </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Approvals</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.pendingApprovals}</p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Live Events</p>
-                <p className="text-2xl font-bold text-green-600">{stats.liveEvents}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Organizers</p>
-                <p className="text-2xl font-bold">{stats.totalOrganizers}</p>
-              </div>
-              <Users className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Events */}
+      {/* Events List */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Events</CardTitle>
-          <CardDescription>Latest events submitted for approval</CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle>Pending Approvals ({events.length})</CardTitle>
+            {events.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+              >
+                {selectedEvents.size === events.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {recentEvents.length > 0 ? (
+          {events.length > 0 ? (
             <div className="space-y-4">
-              {recentEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{event.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {event.category} • {new Date(event.date_time).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge 
-                      variant={
-                        event.status === 'pending' ? 'secondary' :
-                        event.status === 'approved' ? 'default' :
-                        event.status === 'rejected' ? 'destructive' :
-                        'outline'
-                      }
-                    >
-                      {event.status}
-                    </Badge>
-                    {event.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          className="h-8"
-                          onClick={() => handleApprove(event.id)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8"
-                          onClick={() => handleReject(event.id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
+              {events.map((event) => (
+                <div key={event.id} className="border rounded-lg p-4">
+                  <div className="flex items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedEvents.has(event.id)}
+                      onChange={() => toggleEventSelection(event.id)}
+                      className="mt-1"
+                    />
+                    
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-medium text-lg">{event.title}</h4>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                            <Badge variant="outline">{event.category}</Badge>
+                            <span className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {formatDateTime(event.date_time)}
+                            </span>
+                            <span className="flex items-center">
+                              <MapPin className="h-4 w-4 mr-1" />
+                              {event.venue}
+                            </span>
+                            <span className="flex items-center">
+                              <Users className="h-4 w-4 mr-1" />
+                              {event.eligibility}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                      
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {event.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                          <span className="font-medium">Organizer:</span>{' '}
+                          {(event as any).users?.name} ({(event as any).users?.email})
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/events/${event.id}`, '_blank')}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproval(event.id, 'approved')}
+                            disabled={actionLoading === event.id}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            {actionLoading === event.id ? 'Processing...' : 'Approve'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleApproval(event.id, 'rejected')}
+                            disabled={actionLoading === event.id}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
-              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No recent events</h3>
-              <p className="text-muted-foreground">
-                Events will appear here once organizers start creating them
-              </p>
+              <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+              <h3 className="text-lg font-medium mb-2">All caught up!</h3>
+              <p className="text-muted-foreground">No events pending approval at the moment.</p>
             </div>
           )}
         </CardContent>

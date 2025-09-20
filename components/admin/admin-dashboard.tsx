@@ -15,11 +15,6 @@ interface DashboardStats {
   totalOrganizers: number
 }
 
-// Define the update type for events
-type EventUpdate = {
-  status: 'pending' | 'approved' | 'rejected' | 'archived';
-};
-
 export function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalEvents: 0,
@@ -89,10 +84,9 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
-      const updateData: EventUpdate = { status: 'approved' };
       const { error } = await supabase
         .from('events')
-        .update(updateData)
+        .update({ status: 'approved' } as never)
         .eq('id', eventId)
       
       if (error) throw error
@@ -106,10 +100,9 @@ export function AdminDashboard() {
 
   const handleReject = async (eventId: string) => {
     try {
-      const updateData: EventUpdate = { status: 'rejected' };
       const { error } = await supabase
         .from('events')
-        .update(updateData)
+        .update({ status: 'rejected' } as never)
         .eq('id', eventId)
       
       if (error) throw error
