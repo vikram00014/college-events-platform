@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EventCard } from '@/components/events/event-card'
+import { AnimateOnScroll } from '@/components/ui/scroll-effects'  // ADD THIS
 import { Plus, Calendar, Clock, CheckCircle, BarChart3 } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
@@ -56,26 +57,26 @@ export default function OrganizerDashboard({ user }: OrganizerDashboardProps) {
       setEvents(data || [])
 
       // Fetch total views separately
-let totalViews = 0
-if (data && data.length > 0) {
-  const eventIds = (data as any).map((event: any) => event.id)
-  
-  const { data: analyticsData } = await supabase
-    .from('event_analytics')
-    .select('page_views')
-    .in('event_id', eventIds)
+      let totalViews = 0
+      if (data && data.length > 0) {
+        const eventIds = (data as any).map((event: any) => event.id)
+        
+        const { data: analyticsData } = await supabase
+          .from('event_analytics')
+          .select('page_views')
+          .in('event_id', eventIds)
 
-  totalViews = (analyticsData as any)?.reduce((sum: number, analytics: any) => 
-    sum + (analytics.page_views || 0), 0
-  ) || 0
-}
+        totalViews = (analyticsData as any)?.reduce((sum: number, analytics: any) => 
+          sum + (analytics.page_views || 0), 0
+        ) || 0
+      }
 
-setStats({
-  total: (data as any)?.length || 0,
-  pending: (data as any)?.filter((e: any) => e.status === 'pending').length || 0,
-  approved: (data as any)?.filter((e: any) => e.status === 'approved').length || 0,
-  totalViews: totalViews
-})
+      setStats({
+        total: (data as any)?.length || 0,
+        pending: (data as any)?.filter((e: any) => e.status === 'pending').length || 0,
+        approved: (data as any)?.filter((e: any) => e.status === 'approved').length || 0,
+        totalViews: totalViews
+      })
 
     } catch (error) {
       console.error('Error fetching organizer events:', error)
@@ -112,8 +113,15 @@ setStats({
 
   if (!user || user.user_metadata?.role !== 'organizer') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center gradient-bg">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="pulse-loader">
+            <div className="pulse-dot"></div>
+            <div className="pulse-dot"></div>
+            <div className="pulse-dot"></div>
+          </div>
+          <p className="text-muted-foreground animate-pulse">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
@@ -125,136 +133,161 @@ setStats({
       </Head>
 
       <div className="min-h-screen gradient-bg">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm border-b">
+        {/* Header - Enhanced with glass effect */}
+        <header className="nav-glass border-b sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link href="/">
-                  <h1 className="text-2xl font-bold text-gradient">College Events</h1>
-                </Link>
-                <span className="text-muted-foreground">/ Organizer Dashboard</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
-                  {user.email}
-                </span>
-                <Button onClick={() => supabase.auth.signOut()}>
-                  Sign Out
-                </Button>
-              </div>
+              <AnimateOnScroll animation="slide-right">
+                <div className="flex items-center gap-4">
+                  <Link href="/">
+                    <h1 className="text-2xl font-bold text-gradient">College Events</h1>
+                  </Link>
+                  <span className="text-muted-foreground">/ Organizer Dashboard</span>
+                </div>
+              </AnimateOnScroll>
+              <AnimateOnScroll animation="slide-left">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    {user.email}
+                  </span>
+                  <Button 
+                    onClick={() => supabase.auth.signOut()}
+                    className="btn-magnetic"
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </AnimateOnScroll>
             </div>
           </div>
         </header>
 
         <main className="container mx-auto px-4 py-8">
-          {/* Welcome Section */}
+          {/* Welcome Section - Enhanced with animations */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Welcome back!</h2>
-            <p className="text-muted-foreground">
-              Manage your events and track their performance
-            </p>
+            <AnimateOnScroll animation="fade-up">
+              <h2 className="heading-lg mb-2 text-shadow">Welcome back! 👋</h2>
+            </AnimateOnScroll>
+            <AnimateOnScroll animation="fade-up">
+              <p className="text-muted-foreground text-lg">
+                Manage your events and track their performance
+              </p>
+            </AnimateOnScroll>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Events</p>
-                    <p className="text-2xl font-bold">{stats.total}</p>
+          {/* Stats Cards - Enhanced with staggered animations */}
+          <div className="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="stagger-item">
+              <Card className="card-hover glass-card shadow-soft">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Events</p>
+                      <p className="text-2xl font-bold">{stats.total}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-blue-500 animate-float" />
                   </div>
-                  <Calendar className="h-8 w-8 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
+            <div className="stagger-item">
+              <Card className="card-hover glass-card shadow-soft">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-orange-500 animate-float" />
                   </div>
-                  <Clock className="h-8 w-8 text-orange-500" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Approved</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+            <div className="stagger-item">
+              <Card className="card-hover glass-card shadow-soft">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Approved</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500 animate-float" />
                   </div>
-                  <CheckCircle className="h-8 w-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Views</p>
-                    <p className="text-2xl font-bold">{stats.totalViews}</p>
+            <div className="stagger-item">
+              <Card className="card-hover glass-card shadow-soft">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Views</p>
+                      <p className="text-2xl font-bold">{stats.totalViews}</p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-purple-500 animate-float" />
                   </div>
-                  <BarChart3 className="h-8 w-8 text-purple-500" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold">Your Events</h3>
-            <Link href="/organizer/create">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Event
-              </Button>
-            </Link>
-          </div>
+          {/* Actions - Enhanced */}
+          <AnimateOnScroll animation="fade-up">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-shadow">Your Events</h3>
+              <Link href="/organizer/create">
+                <Button className="btn-pulse btn-primary shadow-glow">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Event
+                </Button>
+              </Link>
+            </div>
+          </AnimateOnScroll>
 
-          {/* Events List */}
+          {/* Events List - Enhanced with animations */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-white rounded-xl h-80"></div>
+                <div key={i} className="stagger-item">
+                  <div className="skeleton rounded-xl h-80 shadow-soft"></div>
                 </div>
               ))}
             </div>
           ) : events.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  showActions={true}
-                  onEdit={(event) => router.push(`/organizer/edit/${event.id}`)}
-                  onDelete={handleDeleteEvent}
-                />
+                <div key={event.id} className="stagger-item">
+                  <EventCard
+                    event={event}
+                    showActions={true}
+                    onEdit={(event) => router.push(`/organizer/edit/${event.id}`)}
+                    onDelete={handleDeleteEvent}
+                    className="card-hover shadow-soft"
+                  />
+                </div>
               ))}
             </div>
           ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No events yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create your first event to get started
-                </p>
-                <Link href="/organizer/create">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Event
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <AnimateOnScroll animation="fade-up">
+              <Card className="glass-card shadow-soft max-w-md mx-auto">
+                <CardContent className="text-center py-12">
+                  <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-float" />
+                  <h3 className="text-xl font-semibold mb-2">No events yet</h3>
+                  <p className="text-muted-foreground mb-6 text-balance">
+                    Create your first event to get started and reach students across campus
+                  </p>
+                  <Link href="/organizer/create">
+                    <Button className="btn-pulse btn-primary">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Event
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </AnimateOnScroll>
           )}
         </main>
       </div>

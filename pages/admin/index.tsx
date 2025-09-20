@@ -1,5 +1,5 @@
 'use client'
-
+import { AnimateOnScroll } from '@/components/ui/scroll-effects'
 import React, { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
