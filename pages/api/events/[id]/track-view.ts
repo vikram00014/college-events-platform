@@ -28,8 +28,8 @@ export default async function handler(
     }
 
     if (existingAnalytics) {
-      // Update existing record
-      const { error: updateError } = await supabase
+      // Update existing record using any cast
+      const { error: updateError } = await (supabase as any)
         .from('event_analytics')
         .update({
           page_views: existingAnalytics.page_views + 1,
@@ -39,8 +39,8 @@ export default async function handler(
 
       if (updateError) throw updateError
     } else {
-      // Create new analytics record
-      const { error: insertError } = await supabase
+      // Create new analytics record using any cast
+      const { error: insertError } = await (supabase as any)
         .from('event_analytics')
         .insert({
           event_id: id,
