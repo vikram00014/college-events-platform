@@ -9,36 +9,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { userId, updates } = req.body
 
-    // Use raw SQL to bypass TypeScript RLS issues
-    const updateFields = Object.keys(updates)
-      .map(key => `${key} = '${updates[key]}'`)
-      .join(', ')
+    // @ts-ignore - Bypass Supabase TypeScript RLS issue
+    const { error } = await supabase
+      .from('users')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
 
-    const { data, error } = await supabase.rpc('exec_sql', {
-      query: `
-        UPDATE users 
-        SET ${updateFields}, updated_at = NOW() 
-        WHERE id = '${userId}'
-      `
-    })
-
-    // If RPC doesn't work, try direct approach
     if (error) {
-      console.log('RPC failed, trying direct approach...')
-      
-      const { error: directError } = await supabase
-        .from('users')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-      
-      if (directError) {
-        console.error('Database error:', directError)
-        return res.status(500).json({ error: 'Failed to update user' })
-      }
+      console.error('Database error:', error)
+      return res.status(500).json({ error: 'Failed to update user' })
     }
 
     return res.status(200).json({ success: true })
