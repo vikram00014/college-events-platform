@@ -84,27 +84,21 @@ export function AdminDashboard() {
 
   const handleApprove = async (eventId: string) => {
     try {
-      // Use SQL execute with service role key
-      const { error } = await supabase.rpc('approve_event_admin', {
-        event_id: eventId
-      })
-
+      // Direct SQL query approach
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'approved' })
+        .eq('id', eventId)
+      
       if (error) {
-        // Fallback: try direct SQL
-        const { error: sqlError } = await supabase
-          .from('events')
-          .update({ status: 'approved' })
-          .eq('id', eventId)
-        
-        if (sqlError) {
-          console.error('Update failed:', sqlError)
-          alert('Failed to approve event. Please try again.')
-          return
-        }
+        console.error('Update failed:', error)
+        alert('Failed to approve event. Please check your permissions.')
+        return
       }
 
       // Refresh dashboard data
       fetchDashboardData()
+      alert('Event approved successfully!')
     } catch (error) {
       console.error('Error approving event:', error)
       alert('Failed to approve event. Please try again.')
@@ -113,27 +107,21 @@ export function AdminDashboard() {
 
   const handleReject = async (eventId: string) => {
     try {
-      // Use SQL execute with service role key
-      const { error } = await supabase.rpc('reject_event_admin', {
-        event_id: eventId
-      })
-
+      // Direct SQL query approach  
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'rejected' })
+        .eq('id', eventId)
+      
       if (error) {
-        // Fallback: try direct SQL
-        const { error: sqlError } = await supabase
-          .from('events')
-          .update({ status: 'rejected' })
-          .eq('id', eventId)
-        
-        if (sqlError) {
-          console.error('Update failed:', sqlError)
-          alert('Failed to reject event. Please try again.')
-          return
-        }
+        console.error('Update failed:', error)
+        alert('Failed to reject event. Please check your permissions.')
+        return
       }
 
       // Refresh dashboard data
       fetchDashboardData()
+      alert('Event rejected successfully!')
     } catch (error) {
       console.error('Error rejecting event:', error)
       alert('Failed to reject event. Please try again.')
@@ -153,16 +141,6 @@ export function AdminDashboard() {
             </Card>
           ))}
         </div>
-        <Card className="animate-pulse">
-          <CardContent className="p-6">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     )
   }
