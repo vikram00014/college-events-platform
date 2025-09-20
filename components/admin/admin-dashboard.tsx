@@ -86,7 +86,7 @@ export function AdminDashboard() {
     try {
       const { error } = await supabase
         .from('events')
-        .update({ status: 'approved' } as never)
+        .update({ status: 'approved' } as any)
         .eq('id', eventId)
       
       if (error) throw error
@@ -102,7 +102,7 @@ export function AdminDashboard() {
     try {
       const { error } = await supabase
         .from('events')
-        .update({ status: 'rejected' } as never)
+        .update({ status: 'rejected' } as any)
         .eq('id', eventId)
       
       if (error) throw error
